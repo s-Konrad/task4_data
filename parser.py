@@ -56,7 +56,41 @@ def handle_datetime(df: pd.DataFrame) -> None:
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         df['date_str'] = df['timestamp'].dt.strftime('%Y-%m-%d')
 
+def parse_currency(value: str) -> float:
+
+    value = value.strip().lower()
+    is_euro = '€' in value or 'eur' in value
+    value = remove_currency_signs(value)
+
+    value = ".".join([substr for substr in value.split('.') if substr != ''], )
+    value = float(value)
+
+    if is_euro:
+        value *= 1.2
+
+    return round(value, 2)
+
+
+def remove_currency_signs(value):
+    for char in ['$', '€', '¢', ',']:
+        value = value.replace(char, '.')
+    value = "".join([c for c in value if c.isdigit() or c == '.'])
+    return value
+
+
+def normalize_numeric(df: pd.DataFrame) -> None:
+    df['quantity'] = pd.to_numeric(df['quantity']).fillna(0)
+    price = df['unit_price'].apply(parse_currency)
+    df['unit_price'] = pd.to_numeric(price).fillna(0)
+    df['paid_price'] = pd.to_numeric(df['unit_price'] * df['quantity'])
+
+
+def clean_data():
+    handle_datetime(main_df)
+    normalize_numeric(main_df)
+
+
 if __name__ == "__main__":
     users, orders, books = load_data("data/DATA1")
     main_df = create_big_df(users, orders, books)
-    handle_datetime(main_df)
+    clean_data()
