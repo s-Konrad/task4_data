@@ -70,13 +70,11 @@ def parse_currency(value: str) -> float:
 
     return round(value, 2)
 
-
 def remove_currency_signs(value):
     for char in ['$', '€', '¢', ',']:
         value = value.replace(char, '.')
     value = "".join([c for c in value if c.isdigit() or c == '.'])
     return value
-
 
 def normalize_numeric(df: pd.DataFrame) -> None:
     df['quantity'] = pd.to_numeric(df['quantity']).fillna(0)
@@ -84,10 +82,16 @@ def normalize_numeric(df: pd.DataFrame) -> None:
     df['unit_price'] = pd.to_numeric(price).fillna(0)
     df['paid_price'] = pd.to_numeric(df['unit_price'] * df['quantity'])
 
-
 def clean_data():
     handle_datetime(main_df)
     normalize_numeric(main_df)
+
+def analyze_revenue(df):
+    daily_rev = df.groupby('date_str')['paid_price'].sum().reset_index()
+
+    top_5 = daily_rev.sort_values('paid_price', ascending=False).head(5)
+
+    return top_5
 
 
 if __name__ == "__main__":
