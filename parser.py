@@ -1,3 +1,5 @@
+import sys
+
 import pandas as pd
 import numpy as np
 import streamlit as st
@@ -23,4 +25,15 @@ def read_file(path):
     except:
         return None
 
+def load_data(data_path):
+    files = glob.glob(os.path.join(f"{data_path}", '*' ))
+    df_list = []
+    for file in files:
+        temp_df = read_file(file)
+        if temp_df is not None:
+            temp_df.columns = temp_df.columns.str.strip().str.lower()
+            df_list.append(temp_df)
 
+
+if __name__ == "__main__":
+    load_data("data/DATA1")
