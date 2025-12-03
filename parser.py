@@ -99,16 +99,22 @@ def create_sets(author: str) -> Tuple[str, ...]:
     authors = sorted([a.strip() for a in author.split(',')])
     return tuple(authors)
 
-def find_sets_of_authors(df) -> pd.DataFrame:
+def find_sets_of_authors(df) -> Tuple[pd.DataFrame, int]:
     df['author'] = df['author'].apply(create_sets)
     unique_authors = df['author'].nunique()
-    return unique_authors
+    return df, unique_authors
 
-
+# ================================ Task 3 ================================
+def most_popular_authors(df) -> pd.DataFrame:
+    df, _ = find_sets_of_authors(df)
+    sold_books = df.groupby('author')['quantity'].sum().reset_index()
+    most_popular_author = sold_books.sort_values('quantity', ascending=False).head(1)
+    return most_popular_author
 
 if __name__ == "__main__":
     users, orders, books = load_data("data/DATA1")
     main_df = create_big_df(users, orders, books)
     clean_data()
     top_5 = analyze_revenue(main_df)
-    unique_authors = find_sets_of_authors(books)
+    _, unique_authors = find_sets_of_authors(books)
+    best_author = most_popular_authors(main_df)
