@@ -31,7 +31,7 @@ def load_data(data_path: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
     for file in files:
         temp_df = read_file(file)
         if temp_df is not None:
-            temp_df.columns = temp_df.columns.str.strip()
+            temp_df.columns = temp_df.columns.str.strip().str.replace(':', '')
             df_list.append(temp_df)
         else:
             return None  #some  msg would be nice
@@ -40,11 +40,23 @@ def load_data(data_path: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
 
 def create_big_df(users: pd.DataFrame, orders: pd.DataFrame, books: pd.DataFrame) -> pd.DataFrame:
     big_df = orders.copy()
-    big_df = big_df.merge(books, left_on='book_id', right_on=':id', how='left')
+    big_df = big_df.merge(books, left_on='book_id', right_on='id', how='left')
     big_df = big_df.merge(users, left_on='user_id', right_on='id', how='left')
+    big_df = big_df.drop(columns=['id_y', 'id'])
+    big_df = big_df.rename(columns={'id_x': 'order_id'})
     return big_df
 
+def handle_datetime(df: pd.DataFrame) -> None:
+    if 'timestamp' in df.columns:
+        df['timestamp'] = (df['timestamp']
+                           .str.replace('A.M.', 'AM')
+                           .str.replace('P.M.', 'PM')
+                           .str.replace(',', ' '))
+
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df['date_str'] = df['timestamp'].dt.strftime('%Y-%m-%d')
 
 if __name__ == "__main__":
     users, orders, books = load_data("data/DATA1")
     main_df = create_big_df(users, orders, books)
+    handle_datetime(main_df)
