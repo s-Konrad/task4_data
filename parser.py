@@ -1,4 +1,5 @@
 import sys
+from typing import Tuple
 
 import pandas as pd
 import numpy as np
@@ -85,7 +86,7 @@ def normalize_numeric(df: pd.DataFrame) -> None:
 def clean_data():
     handle_datetime(main_df)
     normalize_numeric(main_df)
-
+# ================================ Task 1 ================================
 def analyze_revenue(df):
     daily_rev = df.groupby('date_str')['paid_price'].sum().reset_index()
 
@@ -93,8 +94,21 @@ def analyze_revenue(df):
 
     return top_5
 
+# ================================ Task 2 ================================
+def create_sets(author: str) -> Tuple[str, ...]:
+    authors = sorted([a.strip() for a in author.split(',')])
+    return tuple(authors)
+
+def find_sets_of_authors(df) -> pd.DataFrame:
+    df['author'] = df['author'].apply(create_sets)
+    unique_authors = df['author'].nunique()
+    return unique_authors
+
+
 
 if __name__ == "__main__":
     users, orders, books = load_data("data/DATA1")
     main_df = create_big_df(users, orders, books)
     clean_data()
+    top_5 = analyze_revenue(main_df)
+    unique_authors = find_sets_of_authors(books)
