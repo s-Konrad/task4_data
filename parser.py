@@ -111,6 +111,16 @@ def most_popular_authors(df) -> pd.DataFrame:
     most_popular_author = sold_books.sort_values('quantity', ascending=False).head(1)
     return most_popular_author
 
+# ================================ Task 5 ================================
+def get_daily_revenue(df) -> pd.DataFrame:
+    revenue = df.groupby('date_str')['paid_price'].sum().reset_index()
+    return revenue.sort_values('date_str')
+
+def graph_revenue(df) -> None:
+    chart_df = get_daily_revenue(df)
+    st.line_chart(chart_df.set_index('date_str')['paid_price'])
+
+
 if __name__ == "__main__":
     users, orders, books = load_data("data/DATA1")
     main_df = create_big_df(users, orders, books)
@@ -118,3 +128,5 @@ if __name__ == "__main__":
     top_5 = analyze_revenue(main_df)
     _, unique_authors = find_sets_of_authors(books)
     best_author = most_popular_authors(main_df)
+    revenue = get_daily_revenue(main_df)
+    graph_revenue(main_df)
