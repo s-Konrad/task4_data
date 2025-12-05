@@ -1,8 +1,5 @@
-import sys
 from typing import Tuple
-
 import pandas as pd
-import numpy as np
 import streamlit as st
 import networkx as nx
 import os
@@ -90,9 +87,9 @@ def normalize_numeric(df: pd.DataFrame) -> None:
     df['unit_price'] = pd.to_numeric(price).fillna(0)
     df['paid_price_USD'] = pd.to_numeric(df['unit_price'] * df['quantity'])
 
-def clean_data():
-    handle_datetime(main_df)
-    normalize_numeric(main_df)
+def clean_data(df: pd.DataFrame) -> None:
+    handle_datetime(df)
+    normalize_numeric(df)
 # ================================ Task 1 ================================
 def analyze_revenue(df):
     daily_rev = df.groupby('date_str')['paid_price_USD'].sum().reset_index()
@@ -153,7 +150,6 @@ def find_sets_of_authors(df) -> Tuple[pd.DataFrame, int]:
 
 # ================================ Task 4 ================================
 def most_popular_authors(df) -> pd.DataFrame:
-    df, _ = find_sets_of_authors(df)
     sold_books = df.groupby('author')['quantity'].sum().reset_index()
     most_popular_author = sold_books.sort_values('quantity', ascending=False).head(1)
     return most_popular_author
@@ -174,32 +170,73 @@ def get_best_spending_users(df) -> pd.DataFrame:
     users_spending_df = df.groupby('user_id')['paid_price_USD'].sum().reset_index()
     return users_spending_df.sort_values('paid_price_USD', ascending=False)
 
-if __name__ == "__main__":
-    users, orders, books = load_data("data/DATA1")
-    main_df = create_big_df(users, orders, books)
-    clean_data()
 
-    top_5 = analyze_revenue(main_df)
+# ============================ Display methods ============================
+
+def display_solution_1(df: pd.DataFrame) -> None:
+    top_5 = analyze_revenue(df)
     st.subheader("1 - Top 5 revenue")
     st.dataframe(top_5)
 
 
-    unique_users = find_unique_users(main_df)
+def display_solution_2(df: pd.DataFrame) -> None:
+    main_df = find_unique_users(df)
     st.subheader("2 - Number of unique users")
-    num_unique_users = count_unique_users(unique_users)
+    num_unique_users = count_unique_users(main_df)
     st.metric("", num_unique_users)
 
+
+def display_solution_3(books: pd.DataFrame) -> None:
     _, unique_authors = find_sets_of_authors(books)
     st.subheader("3 - Number of unique authors sets")
     st.metric("", unique_authors)
 
-    best_author = most_popular_authors(main_df)
+
+def display_solution_4(df: pd.DataFrame) -> None:
+    best_author = most_popular_authors(df)
     st.subheader("4 - Most popular author")
     st.dataframe(best_author)
 
-    st.subheader("5 - Greatest spending user")
-    st.dataframe(get_best_spending_users(main_df))
 
+def display_solution_5(df: pd.DataFrame) -> None:
+    st.subheader("5 - Greatest spending user")
+    best_spending_users = get_best_spending_users(df)
+    st.dataframe(best_spending_users)
+
+
+def display_solution_6(df: pd.DataFrame) -> None:
     st.subheader("6 - Daily revenue")
-    revenue = get_daily_revenue(main_df)
-    graph_revenue(main_df)
+    graph_revenue(df)
+
+
+def render_dataset(data_path: str) -> None:
+    main_df = get_df(data_path)
+
+    display_solution_1(main_df)
+    display_solution_2(main_df)
+    display_solution_3(main_df)
+    display_solution_4(main_df)
+    display_solution_5(main_df)
+    display_solution_6(main_df)
+
+
+def get_df(data_path: str) -> pd.DataFrame:
+    users, orders, books = load_data(data_path)
+    main_df = create_big_df(users, orders, books)
+    clean_data(main_df)
+    return main_df
+
+# ========================================================================
+
+if __name__ == "__main__":
+    st.title("Sales Dashboard")
+    tab1, tab2, tab3 = st.tabs(["DATA1", "DATA2", "DATA3"])
+
+    with tab1:
+        render_dataset("data/DATA1")
+
+    with tab2:
+        render_dataset("data/DATA2")
+
+    with tab3:
+        render_dataset("data/DATA3")
