@@ -90,6 +90,7 @@ def normalize_numeric(df: pd.DataFrame) -> None:
 def clean_data(df: pd.DataFrame) -> None:
     handle_datetime(df)
     normalize_numeric(df)
+
 # ================================ Task 1 ================================
 def analyze_revenue(df):
     daily_rev = df.groupby('date_str')['paid_price_USD'].sum().reset_index()
@@ -101,8 +102,35 @@ def analyze_revenue(df):
 # ================================ Task 2 ================================
 
 def find_unique_users(df) -> pd.DataFrame:
-    G = nx.Graph()
+    components = get_unique_users(df)
+    id_mapping = get_unique_uid_map(components)
+    df = map_unique_uids(df, id_mapping)
 
+    return df
+
+
+def map_unique_uids(df, id_mapping):
+    map_df = pd.DataFrame(list(id_mapping.items()), columns=['original_user_id', "unique_user_id"])
+    map_df['original_user_id'] = pd.to_numeric(map_df['original_user_id'])
+    map_df['unique_user_id'] = pd.to_numeric(map_df['original_user_id'])
+    df = df.merge(map_df, left_on='user_id', right_on='original_user_id', how='left')
+    df = df.drop(columns=['original_user_id'])
+    return df
+
+
+def get_unique_uid_map(components):
+    id_mapping = {}
+    for group_id, component in enumerate(components):
+        real_id = group_id + 1
+        for node in component:
+            if node.startswith('uid_'):
+                original_id = int(node.replace('uid_', ''))
+                id_mapping[original_id] = real_id
+    return id_mapping
+
+
+def get_unique_users(df):
+    G = nx.Graph()
     for _, row in df.iterrows():
         uid_node = f"uid_{row['user_id']}"
         G.add_node(uid_node, type='user')
@@ -115,25 +143,8 @@ def find_unique_users(df) -> pd.DataFrame:
 
         if 'address' in df.columns and row['address']:
             G.add_edge(uid_node, f"addr_{row['address']}")
+    return list(nx.connected_components(G))
 
-    components = list(nx.connected_components(G))
-
-    id_mapping = {}
-
-    for group_id, component in enumerate(components):
-        real_id = group_id + 1
-        for node in component:
-            if node.startswith('uid_'):
-                original_id = int(node.replace('uid_', ''))
-                id_mapping[original_id] = real_id
-
-    map_df = pd.DataFrame(list(id_mapping.items()), columns=['original_user_id', "unique_user_id"])
-    map_df['original_user_id'] = pd.to_numeric(map_df['original_user_id'])
-    map_df['unique_user_id'] = pd.to_numeric(map_df['original_user_id'])
-    df = df.merge(map_df, left_on='user_id', right_on='original_user_id', how='left')
-    df = df.drop(columns=['original_user_id'])
-
-    return df
 
 def count_unique_users(df):
     return df['unique_user_id'].nunique()
@@ -211,6 +222,7 @@ def display_solution_6(df: pd.DataFrame) -> None:
 
 def render_dataset(data_path: str) -> None:
     main_df = get_df(data_path)
+    st.subheader(f"Dataset {data_path[-1]}")
 
     display_solution_1(main_df)
     display_solution_2(main_df)
