@@ -103,15 +103,13 @@ def analyze_revenue(df):
 
 # ================================ Task 2 ================================
 
-def find_real_unique_users(df) -> int:
+def find_unique_users(df) -> pd.DataFrame:
     G = nx.Graph()
 
     for _, row in df.iterrows():
-        # Create a unique node for the User ID
         uid_node = f"uid_{row['user_id']}"
         G.add_node(uid_node, type='user')
 
-        # Link to attributes if they exist
         if 'email' in df.columns and row['email']:
             G.add_edge(uid_node, f"email_{row['email']}")
 
@@ -121,7 +119,27 @@ def find_real_unique_users(df) -> int:
         if 'address' in df.columns and row['address']:
             G.add_edge(uid_node, f"addr_{row['address']}")
 
-    return nx.number_connected_components(G)
+    components = list(nx.connected_components(G))
+
+    id_mapping = {}
+
+    for group_id, component in enumerate(components):
+        real_id = group_id + 1
+        for node in component:
+            if node.startswith('uid_'):
+                original_id = int(node.replace('uid_', ''))
+                id_mapping[original_id] = real_id
+
+    map_df = pd.DataFrame(list(id_mapping.items()), columns=['original_user_id', "unique_user_id"])
+    map_df['original_user_id'] = pd.to_numeric(map_df['original_user_id'])
+    map_df['unique_user_id'] = pd.to_numeric(map_df['original_user_id'])
+    df = df.merge(map_df, left_on='user_id', right_on='original_user_id', how='left')
+    df = df.drop(columns=['original_user_id'])
+
+    return df
+
+def count_unique_users(df):
+    return df['unique_user_id'].nunique()
 
 # ================================ Task 3 ================================
 def create_sets(author: str) -> Tuple[str, ...]:
@@ -160,8 +178,11 @@ if __name__ == "__main__":
     st.subheader("1 - Top 5 revenue")
     st.dataframe(top_5)
 
-    unique_users = find_real_unique_users(main_df)
-    st.metric("Unique users", unique_users)
+
+    unique_users = find_unique_users(main_df)
+    st.subheader("2 - Number of unique users")
+    num_unique_users = count_unique_users(unique_users)
+    st.metric("", num_unique_users)
 
     _, unique_authors = find_sets_of_authors(books)
     st.subheader("3 - Number of unique authors sets")
