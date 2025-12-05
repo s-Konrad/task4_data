@@ -36,6 +36,7 @@ def load_data(data_path: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
 
         else:
             return None  #some  msg would be nice
+
         if 'users' in file:
             df_list['users'] = temp_df
         if 'orders' in file:
@@ -124,6 +125,7 @@ def get_daily_revenue(df) -> pd.DataFrame:
 
 def graph_revenue(df) -> None:
     chart_df = get_daily_revenue(df)
+    st.subheader("Daily Revenue")
     st.line_chart(chart_df.set_index('date_str')['paid_price'])
 
 
@@ -131,8 +133,18 @@ if __name__ == "__main__":
     users, orders, books = load_data("data/DATA1")
     main_df = create_big_df(users, orders, books)
     clean_data()
+
     top_5 = analyze_revenue(main_df)
+    st.subheader("1 - Top 5 revenue")
+    st.dataframe(top_5)
+
     _, unique_authors = find_sets_of_authors(books)
+    st.subheader("2 - Number of unique authors sets")
+    st.metric("", unique_authors)
+
     best_author = most_popular_authors(main_df)
+    st.subheader("Most Popular Author")
+    st.dataframe(best_author)
+
     revenue = get_daily_revenue(main_df)
     graph_revenue(main_df)
