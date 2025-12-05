@@ -151,7 +151,7 @@ def find_sets_of_authors(df) -> Tuple[pd.DataFrame, int]:
     unique_authors = df['author'].nunique()
     return df, unique_authors
 
-# ================================ Task 6 ================================
+# ================================ Task 4 ================================
 def most_popular_authors(df) -> pd.DataFrame:
     df, _ = find_sets_of_authors(df)
     sold_books = df.groupby('author')['quantity'].sum().reset_index()
@@ -168,6 +168,11 @@ def graph_revenue(df) -> None:
     st.subheader("Daily Revenue")
     st.line_chart(chart_df.set_index('date_str')['paid_price_USD'])
 
+# ================================ Task 6 ================================
+
+def get_best_spending_users(df) -> pd.DataFrame:
+    users_spending_df = df.groupby('user_id')['paid_price_USD'].sum().reset_index()
+    return users_spending_df.sort_values('paid_price_USD', ascending=False)
 
 if __name__ == "__main__":
     users, orders, books = load_data("data/DATA1")
@@ -189,8 +194,12 @@ if __name__ == "__main__":
     st.metric("", unique_authors)
 
     best_author = most_popular_authors(main_df)
-    st.subheader("4 - Most Popular Author")
+    st.subheader("4 - Most popular author")
     st.dataframe(best_author)
 
+    st.subheader("5 - Greatest spending user")
+    st.dataframe(get_best_spending_users(main_df))
+
+    st.subheader("6 - Daily revenue")
     revenue = get_daily_revenue(main_df)
     graph_revenue(main_df)
