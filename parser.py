@@ -28,16 +28,22 @@ def read_file(path):
 
 def load_data(data_path: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     files = glob.glob(os.path.join(f"{data_path}", '*' ))
-    df_list = []
+    df_list = {'users': None, 'orders': None, 'books': None}
     for file in files:
         temp_df = read_file(file)
         if temp_df is not None:
             temp_df.columns = temp_df.columns.str.strip().str.replace(':', '')
-            df_list.append(temp_df)
+
         else:
             return None  #some  msg would be nice
-    users, orders, books = df_list
-    return users, orders, books
+        if 'users' in file:
+            df_list['users'] = temp_df
+        if 'orders' in file:
+            df_list['orders'] = temp_df
+        if 'books' in file:
+            df_list['books'] = temp_df
+
+    return df_list['users'], df_list['orders'], df_list['books']
 
 def create_big_df(users: pd.DataFrame, orders: pd.DataFrame, books: pd.DataFrame) -> pd.DataFrame:
     big_df = orders.copy()
