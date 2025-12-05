@@ -88,20 +88,42 @@ def normalize_numeric(df: pd.DataFrame) -> None:
     df['quantity'] = pd.to_numeric(df['quantity']).fillna(0)
     price = df['unit_price'].apply(parse_currency)
     df['unit_price'] = pd.to_numeric(price).fillna(0)
-    df['paid_price'] = pd.to_numeric(df['unit_price'] * df['quantity'])
+    df['paid_price_USD'] = pd.to_numeric(df['unit_price'] * df['quantity'])
 
 def clean_data():
     handle_datetime(main_df)
     normalize_numeric(main_df)
 # ================================ Task 1 ================================
 def analyze_revenue(df):
-    daily_rev = df.groupby('date_str')['paid_price'].sum().reset_index()
+    daily_rev = df.groupby('date_str')['paid_price_USD'].sum().reset_index()
 
-    top_5 = daily_rev.sort_values('paid_price', ascending=False).head(5)
+    top_5 = daily_rev.sort_values('paid_price_USD', ascending=False).head(5)
 
     return top_5
 
 # ================================ Task 2 ================================
+
+def find_real_unique_users(df) -> int:
+    G = nx.Graph()
+
+    for _, row in df.iterrows():
+        # Create a unique node for the User ID
+        uid_node = f"uid_{row['user_id']}"
+        G.add_node(uid_node, type='user')
+
+        # Link to attributes if they exist
+        if 'email' in df.columns and row['email']:
+            G.add_edge(uid_node, f"email_{row['email']}")
+
+        if 'phone' in df.columns and row['phone']:
+            G.add_edge(uid_node, f"phone_{row['phone']}")
+
+        if 'address' in df.columns and row['address']:
+            G.add_edge(uid_node, f"addr_{row['address']}")
+
+    return nx.number_connected_components(G)
+
+# ================================ Task 3 ================================
 def create_sets(author: str) -> Tuple[str, ...]:
     authors = sorted([a.strip() for a in author.split(',')])
     return tuple(authors)
@@ -111,7 +133,7 @@ def find_sets_of_authors(df) -> Tuple[pd.DataFrame, int]:
     unique_authors = df['author'].nunique()
     return df, unique_authors
 
-# ================================ Task 3 ================================
+# ================================ Task 6 ================================
 def most_popular_authors(df) -> pd.DataFrame:
     df, _ = find_sets_of_authors(df)
     sold_books = df.groupby('author')['quantity'].sum().reset_index()
@@ -120,13 +142,13 @@ def most_popular_authors(df) -> pd.DataFrame:
 
 # ================================ Task 5 ================================
 def get_daily_revenue(df) -> pd.DataFrame:
-    revenue = df.groupby('date_str')['paid_price'].sum().reset_index()
+    revenue = df.groupby('date_str')['paid_price_USD'].sum().reset_index()
     return revenue.sort_values('date_str')
 
 def graph_revenue(df) -> None:
     chart_df = get_daily_revenue(df)
     st.subheader("Daily Revenue")
-    st.line_chart(chart_df.set_index('date_str')['paid_price'])
+    st.line_chart(chart_df.set_index('date_str')['paid_price_USD'])
 
 
 if __name__ == "__main__":
@@ -138,12 +160,15 @@ if __name__ == "__main__":
     st.subheader("1 - Top 5 revenue")
     st.dataframe(top_5)
 
+    unique_users = find_real_unique_users(main_df)
+    st.metric("Unique users", unique_users)
+
     _, unique_authors = find_sets_of_authors(books)
-    st.subheader("2 - Number of unique authors sets")
+    st.subheader("3 - Number of unique authors sets")
     st.metric("", unique_authors)
 
     best_author = most_popular_authors(main_df)
-    st.subheader("Most Popular Author")
+    st.subheader("4 - Most Popular Author")
     st.dataframe(best_author)
 
     revenue = get_daily_revenue(main_df)
